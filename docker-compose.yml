@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+      - ./data:/app/../data
+    env_file:
+      - .env.example
+    ports:
+      - "5000:5000"
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
