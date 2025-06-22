@@ -11,20 +11,34 @@ CORS(app)
 
 # Load the comprehensive datasets
 try:
-    events_df = pd.read_csv('data/events.csv')
-    fighters_df = pd.read_csv('data/fighters.csv')
-    fights_df = pd.read_csv('data/fights.csv')
+    # Try different paths for data files
+    data_paths = ['data/', '../data/']
+    data_loaded = False
     
-    # Also load the UFC master dataset for championship analysis
-    ufc_master_df = pd.read_csv('data/ufc-master.csv')
+    for data_path in data_paths:
+        try:
+            events_df = pd.read_csv(f'{data_path}events.csv')
+            fighters_df = pd.read_csv(f'{data_path}fighters.csv')
+            fights_df = pd.read_csv(f'{data_path}fights.csv')
+            ufc_master_df = pd.read_csv(f'{data_path}ufc-master.csv')
+            
+            with open(f'{data_path}champions_records.json', 'r') as f:
+                corrected_champions = json.load(f)
+            
+            data_loaded = True
+            print(f"Loaded data from {data_path}")
+            break
+        except FileNotFoundError:
+            continue
     
-    # Load the corrected champions records
-    with open('data/champions_records.json', 'r') as f:
-        corrected_champions = json.load(f)
+    if not data_loaded:
+        raise FileNotFoundError("Could not find data files in any expected location")
     
-    # Convert dates
-    events_df['date'] = pd.to_datetime(events_df['date'])
-    fighters_df['birthdate'] = pd.to_datetime(fighters_df['birthdate'], errors='coerce')
+    # Convert dates only if data was loaded successfully
+    if not events_df.empty:
+        events_df['date'] = pd.to_datetime(events_df['date'])
+    if not fighters_df.empty and 'birthdate' in fighters_df.columns:
+        fighters_df['birthdate'] = pd.to_datetime(fighters_df['birthdate'], errors='coerce')
     
     print(f"Loaded {len(events_df)} events, {len(fighters_df)} fighters, {len(fights_df)} fights")
     print(f"Loaded {len(ufc_master_df)} historical fights for championship analysis")
@@ -41,9 +55,10 @@ except Exception as e:
 
 # Calculate fighter ages
 current_date = datetime.now()
-fighters_df['age'] = fighters_df['birthdate'].apply(
-    lambda x: (current_date - x).days // 365 if pd.notna(x) else None
-)
+if not fighters_df.empty and 'birthdate' in fighters_df.columns:
+    fighters_df['age'] = fighters_df['birthdate'].apply(
+        lambda x: (current_date - x).days // 365 if pd.notna(x) else None
+    )
 
 def calculate_fighter_age(birthdate):
     """Calculate fighter age"""
@@ -53,9 +68,16 @@ def calculate_fighter_age(birthdate):
 
 def get_fighter_performance_metrics():
     """Calculate comprehensive fighter performance metrics"""
+    if fighters_df.empty or fights_df.empty:
+        return []
+    
+    # Check if required columns exist
+    required_cols = ['fighter_id', 'name', 'wins', 'losses', 'draws', 'country', 'weight (lbs)', 'height (cm)']
+    available_cols = ['fighter_id', 'name'] + [col for col in required_cols[2:] if col in fighters_df.columns]
+    
     # Merge fights with fighter data
     fights_with_winners = fights_df.merge(
-        fighters_df[['fighter_id', 'name', 'wins', 'losses', 'draws', 'country', 'weight (lbs)', 'height (cm)']],
+        fighters_df[available_cols],
         left_on='winner', right_on='fighter_id', how='left'
     )
     
@@ -186,7 +208,7 @@ def identify_rising_stars():
 
 def analyze_international_representation():
     """Analyze international representation in UFC"""
-    if fighters_df.empty:
+    if fighters_df.empty or 'country' not in fighters_df.columns:
         return {}
     
     country_stats = fighters_df['country'].value_counts().head(15)
@@ -228,6 +250,11 @@ def get_performance_summary():
     if fighters_df.empty:
         return {}
     
+    # Check if required columns exist
+    required_cols = ['wins', 'losses', 'draws']
+    if not all(col in fighters_df.columns for col in required_cols):
+        return {}
+    
     # Calculate win rates
     fighters_df['total_fights'] = fighters_df['wins'] + fighters_df['losses'] + fighters_df['draws']
     active_fighters = fighters_df[fighters_df['total_fights'] >= 3]
@@ -254,7 +281,7 @@ def get_performance_summary():
 
 def get_data_coverage():
     """Get data coverage information"""
-    if events_df.empty:
+    if events_df.empty or 'date' not in events_df.columns:
         return {}
     
     earliest_event = events_df['date'].min().strftime('%Y-%m-%d')
@@ -482,6 +509,13 @@ def get_events_analysis():
 def search_fighter(name):
     """Search for fighters by name"""
     try:
+        if fighters_df.empty or 'name' not in fighters_df.columns:
+            return jsonify({
+                'query': name,
+                'total_found': 0,
+                'results': []
+            })
+        
         # Case-insensitive search
         matching_fighters = fighters_df[
             fighters_df['name'].str.contains(name, case=False, na=False)
@@ -489,13 +523,16 @@ def search_fighter(name):
         
         results = []
         for _, fighter in matching_fighters.iterrows():
-            total_fights = fighter['wins'] + fighter['losses'] + fighter['draws']
-            win_rate = (fighter['wins'] / total_fights * 100) if total_fights > 0 else 0
+            wins = fighter.get('wins', 0) or 0
+            losses = fighter.get('losses', 0) or 0
+            draws = fighter.get('draws', 0) or 0
+            total_fights = wins + losses + draws
+            win_rate = (wins / total_fights * 100) if total_fights > 0 else 0
             
             results.append({
                 'fighter_id': fighter.get('fighter_id', 'N/A'),
                 'name': fighter['name'],
-                'record': f"{fighter['wins']}-{fighter['losses']}-{fighter['draws']}",
+                'record': f"{wins}-{losses}-{draws}",
                 'win_rate': round(win_rate, 1),
                 'country': fighter.get('nationality', 'Unknown'),
                 'weight_lbs': fighter.get('weight_lbs', None)
