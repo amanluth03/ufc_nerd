@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
@@ -6,20 +6,20 @@ from datetime import datetime, timedelta
 import os
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 # Load the comprehensive datasets
 try:
-    events_df = pd.read_csv('../data/events.csv')
-    fighters_df = pd.read_csv('../data/fighters.csv')
-    fights_df = pd.read_csv('../data/fights.csv')
+    events_df = pd.read_csv('data/events.csv')
+    fighters_df = pd.read_csv('data/fighters.csv')
+    fights_df = pd.read_csv('data/fights.csv')
     
     # Also load the UFC master dataset for championship analysis
-    ufc_master_df = pd.read_csv('../data/ufc-master.csv')
+    ufc_master_df = pd.read_csv('data/ufc-master.csv')
     
     # Load the corrected champions records
-    with open('../data/champions_records.json', 'r') as f:
+    with open('data/champions_records.json', 'r') as f:
         corrected_champions = json.load(f)
     
     # Convert dates
@@ -714,5 +714,20 @@ def get_dataset_info():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/')
+def serve_frontend():
+    """Serve the frontend application"""
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static_files(path):
+    """Serve static files"""
+    try:
+        return send_from_directory(app.static_folder, path)
+    except:
+        # If file not found, serve index.html for client-side routing
+        return send_from_directory(app.static_folder, 'index.html')
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=False, host='0.0.0.0', port=port)
