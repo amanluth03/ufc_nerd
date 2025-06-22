@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import os
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -17,12 +18,17 @@ try:
     # Also load the UFC master dataset for championship analysis
     ufc_master_df = pd.read_csv('../data/ufc-master.csv')
     
+    # Load the corrected champions records
+    with open('../data/champions_records.json', 'r') as f:
+        corrected_champions = json.load(f)
+    
     # Convert dates
     events_df['date'] = pd.to_datetime(events_df['date'])
     fighters_df['birthdate'] = pd.to_datetime(fighters_df['birthdate'], errors='coerce')
     
     print(f"Loaded {len(events_df)} events, {len(fighters_df)} fighters, {len(fights_df)} fights")
     print(f"Loaded {len(ufc_master_df)} historical fights for championship analysis")
+    print(f"Loaded {len(corrected_champions)} corrected former champions records")
     
 except Exception as e:
     print(f"Error loading data: {e}")
@@ -31,6 +37,7 @@ except Exception as e:
     fighters_df = pd.DataFrame()
     fights_df = pd.DataFrame()
     ufc_master_df = pd.DataFrame()
+    corrected_champions = []
 
 # Calculate fighter ages
 current_date = datetime.now()
@@ -582,16 +589,73 @@ def health_check():
 
 @app.route('/api/former-champions/analysis', methods=['GET'])
 def get_former_champions_analysis():
-    """Get complete former champions analysis"""
+    """Get complete former champions analysis using corrected data"""
     try:
-        champions = calculate_post_belt_records()
-        summary = get_former_champions_summary()
+        # Use the corrected champions data instead of calculating dynamically
+        champions = []
+        
+        for champion in corrected_champions:
+            # Parse the record string (e.g., "5-4" -> wins=5, losses=4)
+            record_parts = champion['record_after_belt'].split('-')
+            wins = int(record_parts[0])
+            losses = int(record_parts[1])
+            total_fights = wins + losses
+            
+            champions.append({
+                'name': champion['name'],
+                'record_after_belt_loss': champion['record_after_belt'],
+                'wins_after_belt_loss': wins,
+                'losses_after_belt_loss': losses,
+                'total_fights_after_belt_loss': total_fights,
+                'win_percentage_after_belt_loss': champion['win_percentage'],
+                'weight_class': champion.get('weight_class', 'Unknown'),
+                'lost_to': champion.get('lost_to', 'Unknown'),
+                'lost_belt_date': champion.get('title_loss_details', '').split(' at ')[-1].split(' (')[-1].replace(')', '') if 'at' in champion.get('title_loss_details', '') else 'Unknown'
+            })
+        
+        # Calculate summary from corrected data
+        total_champions = len(champions)
+        total_wins = sum(c['wins_after_belt_loss'] for c in champions)
+        total_losses = sum(c['losses_after_belt_loss'] for c in champions)
+        total_fights = sum(c['total_fights_after_belt_loss'] for c in champions)
+        
+        overall_win_percentage = round((total_wins / total_fights) * 100, 1) if total_fights > 0 else 0
+        
+        # Performance breakdown
+        elite_performers = [c for c in champions if c['win_percentage_after_belt_loss'] >= 70]
+        good_performers = [c for c in champions if 50 <= c['win_percentage_after_belt_loss'] < 70]
+        struggling_performers = [c for c in champions if c['win_percentage_after_belt_loss'] < 50]
+        
+        summary = {
+            'total_former_champions': total_champions,
+            'total_wins_after_belt_loss': total_wins,
+            'total_losses_after_belt_loss': total_losses,
+            'overall_win_percentage_after_belt_loss': overall_win_percentage,
+            'average_fights_per_former_champion': round(total_fights / total_champions, 1) if total_champions > 0 else 0,
+            'performance_breakdown': {
+                'elite_performers': {
+                    'count': len(elite_performers),
+                    'percentage': round((len(elite_performers) / total_champions) * 100, 1),
+                    'criteria': '70%+ win rate'
+                },
+                'good_performers': {
+                    'count': len(good_performers),
+                    'percentage': round((len(good_performers) / total_champions) * 100, 1),
+                    'criteria': '50-69% win rate'
+                },
+                'struggling_performers': {
+                    'count': len(struggling_performers),
+                    'percentage': round((len(struggling_performers) / total_champions) * 100, 1),
+                    'criteria': '<50% win rate'
+                }
+            }
+        }
         
         return jsonify({
             'former_champions': champions,
             'summary': summary,
-            'analysis_note': 'Analysis of UFC champions performance after losing their championship belt',
-            'data_source': 'UFC Master Dataset (6,528 fights, 302 title bouts)'
+            'analysis_note': 'Corrected analysis of UFC champions performance after losing their championship belt',
+            'data_source': 'Manually verified and corrected UFC historical records'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

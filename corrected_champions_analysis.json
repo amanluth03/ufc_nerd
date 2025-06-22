@@ -1,0 +1,119 @@
+{
+  "analysis_date": "2025-06-22T12:49:18.491810",
+  "methodology": "Corrected analysis using verified historical data",
+  "total_champions_analyzed": 10,
+  "champion_records": {
+    "Anderson Silva": {
+      "record": "1-7",
+      "details": "Lost title to Chris Weidman at UFC 162, went 1-7 afterwards",
+      "source": "research_verified"
+    },
+    "Conor McGregor": {
+      "record": "1-3",
+      "details": "Stripped of lightweight title for inactivity",
+      "source": "research_verified"
+    },
+    "Ronda Rousey": {
+      "record": "0-2",
+      "details": "Lost title to Holly Holm, then lost comeback fight to Amanda Nunes",
+      "source": "research_verified"
+    },
+    "Jose Aldo": {
+      "record": "7-7",
+      "details": "Lost title to Conor McGregor in 13 seconds",
+      "source": "research_verified"
+    },
+    "Dominick Cruz": {
+      "record": "2-3",
+      "details": "Lost title to Cody Garbrandt at UFC 207",
+      "source": "research_verified"
+    },
+    "Luke Rockhold": {
+      "record": "1-3",
+      "details": "Lost title to Michael Bisping at UFC 199",
+      "source": "research_verified"
+    },
+    "Michael Bisping": {
+      "record": "0-1",
+      "details": "Lost title to GSP at UFC 217, then lost final fight to Gastelum",
+      "source": "research_verified"
+    },
+    "Chris Weidman": {
+      "record": "3-6",
+      "details": "Lost title to Luke Rockhold at UFC 194",
+      "source": "research_verified"
+    },
+    "Fabricio Werdum": {
+      "record": "5-4",
+      "details": "Lost title to Stipe Miocic at UFC 198",
+      "source": "research_verified"
+    },
+    "Cain Velasquez": {
+      "record": "1-2",
+      "details": "Lost title to Fabricio Werdum at UFC 188",
+      "source": "research_verified"
+    }
+  },
+  "win_percentage_rankings": [
+    {
+      "name": "Fabricio Werdum",
+      "wins": 5,
+      "losses": 4,
+      "win_percentage": 55.55555555555556
+    },
+    {
+      "name": "Jose Aldo",
+      "wins": 7,
+      "losses": 7,
+      "win_percentage": 50.0
+    },
+    {
+      "name": "Dominick Cruz",
+      "wins": 2,
+      "losses": 3,
+      "win_percentage": 40.0
+    },
+    {
+      "name": "Chris Weidman",
+      "wins": 3,
+      "losses": 6,
+      "win_percentage": 33.33333333333333
+    },
+    {
+      "name": "Cain Velasquez",
+      "wins": 1,
+      "losses": 2,
+      "win_percentage": 33.33333333333333
+    },
+    {
+      "name": "Conor McGregor",
+      "wins": 1,
+      "losses": 3,
+      "win_percentage": 25.0
+    },
+    {
+      "name": "Luke Rockhold",
+      "wins": 1,
+      "losses": 3,
+      "win_percentage": 25.0
+    },
+    {
+      "name": "Anderson Silva",
+      "wins": 1,
+      "losses": 7,
+      "win_percentage": 12.5
+    },
+    {
+      "name": "Ronda Rousey",
+      "wins": 0,
+      "losses": 2,
+      "win_percentage": 0.0
+    },
+    {
+      "name": "Michael Bisping",
+      "wins": 0,
+      "losses": 1,
+      "win_percentage": 0.0
+    }
+  ]
+}
